@@ -116,8 +116,13 @@ class GridSample {
     }
 
     // Returns an array of curves representing the contours for the given level
-    polygonize (level)   {
-        var curves = marching_squares (this.s, level);
+    // for the given rectangular region of the space
+    polygonize (level, xmin, xmax, ymin, ymax)   {
+        var imin = Math.max (~~((ymin - this.ymin) / this.dy)-1, 0);
+        var imax = Math.min (~~((ymax - this.ymin) / this.dy)+2, this.ny);
+        var jmin = Math.max (~~((xmin - this.xmin) / this.dx)-1, 0);
+        var jmax = Math.min (~~((xmax - this.xmin) / this.dx)+2, this.nx);
+        var curves = marching_squares (this.s, level, imin, imax-imin, jmin, jmax-jmin);
         for (let c of curves) {
             for (let p of c.pts) {
                 p.x = p.x * this.dx + this.xmin;
@@ -133,7 +138,7 @@ class GridSample {
 var clusters; // Collection of Clusters
 var level = 0; // Current clusterization level
 var maxlevel = 5; // Maximum number of clusterization levels
-var levelConnectors = [[],[],[],[],[]]; // Collections of connectors per level
+var levelConnectors = [new Set(), new Set(), new Set(), new Set(), new Set()]; // Collections of connectors per level
 var exclusion = null; // A function to exclude the clustering of some element pairs
 var sel = null; // Selected (dragging) cluster / element if any
 var grid = null;  // The current sampling of the scalar field
@@ -142,7 +147,7 @@ var grid = null;  // The current sampling of the scalar field
 var dilation_base = 10;
 var dilation_increment = 10;
 var dilation_radius = dilation_base;
-var grid_spacing = 8.0;
+var grid_spacing = 6.0;
 var level_offset = 0.2;
 
 
@@ -302,8 +307,9 @@ function keyPressed() {
         cursor (CROSS);
     }
     if (key == "U" || key == "u") {
+        exclusion = null;
         if (level+1 < maxlevel) {
-            levelConnectors[level] = [];
+            levelConnectors[level] = new Set();
             // for (let c of clusters) {
             //     for (let con of c.connectors()) {
             //         levelConnectors [level].push (con);
@@ -322,12 +328,13 @@ function keyPressed() {
         }
     }
     else if (key == "D" || key == "d") {
+        exclusion = null;
         if (level > 0) {
             dilation_radius = 0.5 * dilation_radius;
-            levelConnectors[level] = [];
+            levelConnectors[level] = new Set();
             for (let c of clusters) {
                 for (let con of c.connectors()) {
-                    levelConnectors [level].push (con);
+                    levelConnectors [level].add (con);
                     c.remove (con);
                 }
             }
@@ -395,7 +402,7 @@ function polygonize () {
         var box = cluster.bbox();
         if (cluster.dirty || box.intersection (neededBox)) { 
             grid.addCache(cluster.cache,2);
-            cluster.outline = grid.polygonize (level_offset);
+            cluster.outline = grid.polygonize (level_offset, box.x, box.x+box.width, box.y, box.y+box.height);
             grid.addCache(cluster.cache,-2);
             cluster.dirty = false;
         }

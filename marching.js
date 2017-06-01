@@ -10,25 +10,29 @@
 // The function returns an array of curves that approximate f(x,y) = level
 // 
 // 
-function marching_squares (m,level) {
+function marching_squares (m,level, firstRow, nRows, firstCol, nCols) {
 
-    chains = new Set();
+    if (firstRow === undefined) firstRow = 0;
+    if (nRows === undefined) nRows = m.length;
+    if (firstCol === undefined) firstCol = 0;
+    if (nCols == undefined) nCols = m[0].length;
+
+    var chains = new Set();
 
     var prev = [], curr = [];
-    var iy = 0;
     var above = [];
-    var width = m[0].length;
-    var height = m.length;
+    var lastCol = firstCol+nCols;
+    var lastRow = firstRow+nRows;
 
-    for (var ix = 0; ix < width; ix++) {
-        prev[ix] = m[0][ix]; 
+    for (var ix = firstCol; ix < lastCol; ix++) {
+        prev[ix] = m[firstRow][ix]; 
         above [ix] = null;
     }
 
-    for (var iy = 1; iy < height; iy++) {
-        curr [0] = m [iy][0];
+    for (var iy = firstRow+1; iy < lastRow; iy++) {
+        curr [firstCol] = m [iy][firstCol];
         var left = null;
-        for (var ix = 1; ix < width; ix++) {
+        for (var ix = firstCol+1; ix < lastCol; ix++) {
             curr [ix] = m [iy][ix];
             var nw = prev[ix-1], ne = prev[ix], sw = curr[ix-1], se = curr[ix];
             var n = (nw < level) != (ne < level);
@@ -97,7 +101,7 @@ function marching_squares (m,level) {
                         if (left != above[ix]) {
                             var joined = joinChains (left, above[ix]);
                             if (joined) {
-                                for (var i = 1; i < width; i++) {
+                                for (var i = firstCol; i < lastCol; i++) {
                                     if (i != ix && above [i] == left) {
                                         above [i] = joined;
                                     }
